@@ -9,9 +9,10 @@
 #include <unistd.h>
 
 #define INITIAL_PRICE 100.0
-#define VOLATILITY 0.2
-#define DRIFT 0.01
+#define VOLATILITY 0.02
+#define DRIFT 0.001
 #define MIN_PRICE 1.0
+#define MEAN_PRICE 100.0
 #define SERVER_IP "127.0.0.1"
 #define SERVER_PORT 12345
 #define SLEEP_TIME 1
@@ -23,7 +24,7 @@ double normal_random() {
   return z;
 }
 
-void generate_prices_to_socket(double initial_price, double volatility, double drift, double min_price, const char* server_ip, int server_port) {
+void generate_prices_to_socket(double initial_price, double volatility, double drift, double min_price, double mean_price, const char* server_ip, int server_port) {
   int sockfd = socket(AF_INET, SOCK_STREAM, 0);
   if (sockfd < 0) {
     perror("Error opening socket");
@@ -50,7 +51,8 @@ void generate_prices_to_socket(double initial_price, double volatility, double d
 	send(sockfd, buffer, strlen(buffer), 0);
 
        double random_shock = normal_random() * volatility; 
-       price = price * (1.0 + drift + random_shock);
+       double drift_factor = drift * (price - mean_price);
+       price = price * (1.0 + drift_factor + random_shock);
       
        if (price < min_price) {
 	price = min_price;
@@ -66,6 +68,6 @@ void generate_prices_to_socket(double initial_price, double volatility, double d
 
 int main() { 
 	srand(time(NULL));
-	generate_prices_to_socket(INITIAL_PRICE, VOLATILITY, DRIFT, MIN_PRICE, SERVER_IP, SERVER_PORT);
+	generate_prices_to_socket(INITIAL_PRICE, VOLATILITY, DRIFT, MIN_PRICE, MEAN_PRICE, SERVER_IP, SERVER_PORT);
 	return 0;
 }
