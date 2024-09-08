@@ -9,12 +9,12 @@
 #include <unistd.h>
 
 #define INITIAL_PRICE 100.0
-#define NUM_PRICES 100
 #define VOLATILITY 0.2
 #define DRIFT 0.01
 #define MIN_PRICE 1.0
 #define SERVER_IP "127.0.0.1"
 #define SERVER_PORT 12345
+#define SLEEP_TIME 1
 
 double normal_random() {
   double u1 = rand() / (double)RAND_MAX;
@@ -23,7 +23,7 @@ double normal_random() {
   return z;
 }
 
-void generate_prices_to_socket(double initial_price, int num_prices, double volatility, double drift, double min_price, const char* server_ip, int server_port) {
+void generate_prices_to_socket(double initial_price, double volatility, double drift, double min_price, const char* server_ip, int server_port) {
   int sockfd = socket(AF_INET, SOCK_STREAM, 0);
   if (sockfd < 0) {
     perror("Error opening socket");
@@ -45,11 +45,10 @@ void generate_prices_to_socket(double initial_price, int num_prices, double vola
   double price = initial_price; 
   char buffer[256];
 
-  snprintf(buffer, sizeof(buffer), "%.2f\n", price);
-  send(sockfd, buffer, strlen(buffer), 0);
-  //printf("%2f\n", price);
+  while (1) {
+        snprintf(buffer, sizeof(buffer), "%.2f\n", price);
+	send(sockfd, buffer, strlen(buffer), 0);
 
-  for (int i = 1; i < num_prices; i++) {
        double random_shock = normal_random() * volatility; 
        price = price * (1.0 + drift + random_shock);
       
@@ -57,15 +56,16 @@ void generate_prices_to_socket(double initial_price, int num_prices, double vola
 	price = min_price;
         }
 	
-	snprintf(buffer, sizeof(buffer), "%.2f\n", price);
-	send(sockfd, buffer, strlen(buffer), 0);
+	//snprintf(buffer, sizeof(buffer), "%.2f\n", price);
+	//send(sockfd, buffer, strlen(buffer), 0);
        //printf("%.2f\n", price);
+      sleep(SLEEP_TIME);
      }
   close(sockfd);
 }
 
 int main() { 
 	srand(time(NULL));
-	generate_prices_to_socket(INITIAL_PRICE, NUM_PRICES, VOLATILITY, DRIFT, MIN_PRICE, SERVER_IP, SERVER_PORT);
+	generate_prices_to_socket(INITIAL_PRICE, VOLATILITY, DRIFT, MIN_PRICE, SERVER_IP, SERVER_PORT);
 	return 0;
 }
